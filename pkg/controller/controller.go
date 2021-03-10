@@ -465,6 +465,34 @@ func getAccessMode(pvcAccessMode v1.PersistentVolumeAccessMode) *csi.VolumeCapab
 		return &csi.VolumeCapability_AccessMode{
 			Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_READER_ONLY,
 		}
+	case v1.ReadWriteOncePod:
+		return &csi.VolumeCapability_AccessMode{
+			Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_SINGLE_WRITER,
+		}
+	default:
+		return nil
+	}
+}
+
+// TODO: Rename this.
+func getUpdatedAccessMode(pvcAccessMode v1.PersistentVolumeAccessMode) *csi.VolumeCapability_AccessMode {
+	switch pvcAccessMode {
+	case v1.ReadWriteOnce:
+		return &csi.VolumeCapability_AccessMode{
+			Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_MULTI_WRITER,
+		}
+	case v1.ReadWriteMany:
+		return &csi.VolumeCapability_AccessMode{
+			Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER,
+		}
+	case v1.ReadOnlyMany:
+		return &csi.VolumeCapability_AccessMode{
+			Mode: csi.VolumeCapability_AccessMode_MULTI_NODE_READER_ONLY,
+		}
+	case v1.ReadWriteOncePod:
+		return &csi.VolumeCapability_AccessMode{
+			Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_SINGLE_WRITER,
+		}
 	default:
 		return nil
 	}
@@ -486,7 +514,24 @@ func getVolumeCapability(
 		AccessType: getAccessTypeMount(fsType, sc.MountOptions),
 		AccessMode: getAccessMode(pvcAccessMode),
 	}
+}
 
+func getUpdatedVolumeCapability(
+	claim *v1.PersistentVolumeClaim,
+	sc *storagev1.StorageClass,
+	pvcAccessMode v1.PersistentVolumeAccessMode,
+	fsType string,
+) *csi.VolumeCapability {
+	if util.CheckPersistentVolumeClaimModeBlock(claim) {
+		return &csi.VolumeCapability{
+			AccessType: getAccessTypeBlock(),
+			AccessMode: getUpdatedAccessMode(pvcAccessMode),
+		}
+	}
+	return &csi.VolumeCapability{
+		AccessType: getAccessTypeMount(fsType, sc.MountOptions),
+		AccessMode: getUpdatedAccessMode(pvcAccessMode),
+	}
 }
 
 type prepareProvisionResult struct {
@@ -581,10 +626,18 @@ func (p *csiProvisioner) prepareProvision(ctx context.Context, claim *v1.Persist
 	capacity := claim.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]
 	volSizeBytes := capacity.Value()
 
-	// Get access mode
+	// Get access modes for volumes
 	volumeCaps := make([]*csi.VolumeCapability, 0)
-	for _, pvcAccessMode := range claim.Spec.AccessModes {
-		volumeCaps = append(volumeCaps, getVolumeCapability(claim, sc, pvcAccessMode, fsType))
+	if !p.controllerCapabilities[csi.ControllerServiceCapability_RPC_SINGLE_NODE_MULTI_WRITER] {
+		klog.Infoln("controller DOES NOT support capability")
+		for _, pvcAccessMode := range claim.Spec.AccessModes {
+			volumeCaps = append(volumeCaps, getVolumeCapability(claim, sc, pvcAccessMode, fsType))
+		}
+	} else {
+		klog.Infoln("controller supports capability")
+		for _, pvcAccessMode := range claim.Spec.AccessModes {
+			volumeCaps = append(volumeCaps, getUpdatedVolumeCapability(claim, sc, pvcAccessMode, fsType))
+		}
 	}
 
 	// Create a CSI CreateVolumeRequest and Response
