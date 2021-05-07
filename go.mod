@@ -61,3 +61,6 @@ replace k8s.io/component-base => k8s.io/component-base v0.21.0
 replace k8s.io/component-helpers => k8s.io/component-helpers v0.21.0
 
 replace k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.21.0
+
+// go get -d github.com/chrishenzie/spec@single-node-access-modes
+replace github.com/container-storage-interface/spec => github.com/chrishenzie/spec v1.4.0-rc1.0.20210507170057-b17438ceec39

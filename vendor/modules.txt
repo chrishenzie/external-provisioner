@@ -4,7 +4,7 @@ github.com/beorn7/perks/quantile
 github.com/blang/semver
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
-# github.com/container-storage-interface/spec v1.4.0
+# github.com/container-storage-interface/spec v1.4.0 => github.com/chrishenzie/spec v1.4.0-rc1.0.20210507170057-b17438ceec39
 ## explicit
 github.com/container-storage-interface/spec/lib/go/csi
 # github.com/davecgh/go-spew v1.1.1
@@ -676,3 +676,4 @@ sigs.k8s.io/yaml
 # k8s.io/component-base => k8s.io/component-base v0.21.0
 # k8s.io/component-helpers => k8s.io/component-helpers v0.21.0
 # k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.21.0
+# github.com/container-storage-interface/spec => github.com/chrishenzie/spec v1.4.0-rc1.0.20210507170057-b17438ceec39
